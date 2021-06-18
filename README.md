@@ -1,4 +1,4 @@
-Groovy Script Plugin for Fess [![Build Status](https://travis-ci.org/codelibs/fess-script-groovy.svg?branch=master)](https://travis-ci.org/codelibs/fess-script-groovy)
+Groovy Script Plugin for Fess
 ==========================
 
 ## Overview

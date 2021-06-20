@@ -1,4 +1,5 @@
 Groovy Script Plugin for Fess
+[![Java CI with Maven](https://github.com/codelibs/fess-script-groovy/actions/workflows/maven.yml/badge.svg)](https://github.com/codelibs/fess-script-groovy/actions/workflows/maven.yml)
 ==========================
 
 ## Overview

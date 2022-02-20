@@ -32,7 +32,7 @@ public class GroovyEngine extends AbstractScriptEngine {
     private static final Logger logger = LogManager.getLogger(GroovyEngine.class);
 
     @Override
-    public Object evaluate(String template, Map<String, Object> paramMap) {
+    public Object evaluate(final String template, final Map<String, Object> paramMap) {
         final Map<String, Object> bindingMap = new HashMap<>(paramMap);
         bindingMap.put("container", SingletonLaContainerFactory.getContainer());
         final GroovyShell groovyShell = new GroovyShell(new Binding(bindingMap));

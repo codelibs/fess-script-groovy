@@ -4,7 +4,7 @@
 	<artifactId>fess-script-groovy</artifactId>
 	<packaging>jar</packaging>
 	<name>Groovy Script Plugin</name>
-	<version>14.4.1-SNAPSHOT</version>
+	<version>14.5.0-SNAPSHOT</version>
 	<scm>
 		<connection>scm:git:git@github.com:codelibs/fess-script-groovy.git</connection>
 		<developerConnection>scm:git:git@github.com:codelibs/fess-script-groovy.git</developerConnection>
@@ -13,7 +13,7 @@
 	<parent>
 		<groupId>org.codelibs.fess</groupId>
 		<artifactId>fess-parent</artifactId>
-		<version>14.4.0</version>
+		<version>14.5.0-SNAPSHOT</version>
 		<relativePath />
 	</parent>
 	<build>
@@ -54,7 +54,7 @@
 							<createDependencyReducedPom>false</createDependencyReducedPom>
 							<artifactSet>
 								<includes>
-									<include>org.codehaus.groovy:groovy</include>
+									<include>org.apache.groovy:groovy</include>
 								</includes>
 							</artifactSet>
 						</configuration>
@@ -69,7 +69,7 @@
 	</build>
 	<dependencies>
 		<dependency>
-			<groupId>org.codehaus.groovy</groupId>
+			<groupId>org.apache.groovy</groupId>
 			<artifactId>groovy</artifactId>
 			<version>${groovy.version}</version>
 		</dependency>

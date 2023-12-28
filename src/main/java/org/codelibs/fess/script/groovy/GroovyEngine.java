@@ -41,7 +41,7 @@ public class GroovyEngine extends AbstractScriptEngine {
         } catch (final JobProcessingException e) {
             throw e;
         } catch (final Exception e) {
-            logger.warn("Failed to evalue groovy script: {} => {}", template, paramMap, e);
+            logger.warn("Failed to evaluate groovy script: {} => {}", template, paramMap, e);
             return null;
         } finally {
             final GroovyClassLoader loader = groovyShell.getClassLoader();

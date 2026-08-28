@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.codelibs.fess.util.ComponentUtil;
 import org.dbflute.utflute.lastaflute.LastaFluteTestCase;
+import org.junit.jupiter.api.TestInfo;
 
 public class GroovyEngineTest extends LastaFluteTestCase {
     public GroovyEngine groovyEngine;
@@ -35,15 +36,15 @@ public class GroovyEngineTest extends LastaFluteTestCase {
     }
 
     @Override
-    public void setUp() throws Exception {
-        super.setUp();
+    protected void setUp(final TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
         groovyEngine = new GroovyEngine();
     }
 
     @Override
-    public void tearDown() throws Exception {
+    protected void tearDown(final TestInfo testInfo) throws Exception {
         ComponentUtil.setFessConfig(null);
-        super.tearDown();
+        super.tearDown(testInfo);
     }
 
     public void test_evaluate() {

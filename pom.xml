@@ -4,16 +4,17 @@
 	<artifactId>fess-script-groovy</artifactId>
 	<packaging>jar</packaging>
 	<name>Groovy Script Plugin</name>
-	<version>14.19.1-SNAPSHOT</version>
+	<version>15.9.0-SNAPSHOT</version>
 	<scm>
 		<connection>scm:git:git@github.com:codelibs/fess-script-groovy.git</connection>
 		<developerConnection>scm:git:git@github.com:codelibs/fess-script-groovy.git</developerConnection>
 		<url>https://github.com/codelibs/fess-script-groovy</url>
+		<tag>HEAD</tag>
 	</scm>
 	<parent>
 		<groupId>org.codelibs.fess</groupId>
 		<artifactId>fess-parent</artifactId>
-		<version>14.19.1-SNAPSHOT</version>
+		<version>15.9.0-SNAPSHOT</version>
 		<relativePath />
 	</parent>
 	<build>
@@ -67,6 +68,24 @@
 			</plugin>
 		</plugins>
 	</build>
+	<!-- Fess plugins are distributed through maven.codelibs.org instead of Maven Central.
+	     This cannot be inherited from fess-parent: distributionManagement is inherited
+	     unconditionally, so declaring it there would also redirect the SNAPSHOT
+	     deployments of fess-parent, fess, fess-crawler, fess-crawler-playwright and
+	     fess-suggest, which stay on Maven Central. The scpexe transport comes from
+	     the wagon-ssh-external build extension inherited from fess-parent. -->
+	<distributionManagement>
+		<repository>
+			<id>codelibs-repo</id>
+			<name>CodeLibs Repository</name>
+			<url>scpexe://maven.codelibs.org/var/www/maven/release</url>
+		</repository>
+		<snapshotRepository>
+			<id>codelibs-snapshots</id>
+			<name>CodeLibs Snapshot Repository</name>
+			<url>scpexe://maven.codelibs.org/var/www/maven/snapshot</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<repositories>
 		<repository>
 			<id>snapshots.central.sonatype.com</id>
@@ -86,15 +105,15 @@
 			<version>${groovy.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>javax.annotation</groupId>
-			<artifactId>javax.annotation-api</artifactId>
-			<version>${javax.annotation.api.version}</version>
+			<groupId>jakarta.annotation</groupId>
+			<artifactId>jakarta.annotation-api</artifactId>
+			<version>${jakarta.annotation.api.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>${javax.servlet.api.version}</version>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<version>${jakarta.servlet.api.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -122,6 +141,12 @@
 			<groupId>org.opensearch</groupId>
 			<artifactId>opensearch</artifactId>
 			<version>${opensearch.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${guava.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>

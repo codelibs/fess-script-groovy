@@ -24,9 +24,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.config.Property;
 import org.codelibs.fess.exception.JobProcessingException;
+import org.codelibs.fess.opensearch.config.exentity.ScheduledJob;
 import org.codelibs.fess.util.ComponentUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -837,6 +846,88 @@ public class GroovyEngineTest extends UnitScriptTestCase {
     public void test_getName_returnsGroovy() {
         final TestableGroovyEngine testEngine = new TestableGroovyEngine();
         assertEquals("groovy", testEngine.testGetName());
+    }
+
+    @Test
+    public void test_evaluate_failureWarnsWithTheJobName() {
+        // A swallowed failure leaves the scheduler job with a successful status, so the warning is
+        // the only record of it. Without the job name the warning cannot be matched to the job.
+        final ScheduledJob scheduledJob = new ScheduledJob();
+        scheduledJob.setId("J1");
+        scheduledJob.setName("Migrated Crawler");
+        final GroovyEngine engine = new GroovyEngine() {
+            @Override
+            protected ScheduledJob getCurrentScheduledJob() {
+                return scheduledJob;
+            }
+        };
+        final CapturedWarnings capture = CapturedWarnings.attach(GroovyEngine.class);
+        try {
+            assertNull(engine.evaluate("this is not groovy (", new HashMap<>()));
+            assertTrue("the warning must name the job whose script failed: " + capture.messages(),
+                    capture.messages().stream().anyMatch(m -> m.contains("job=Migrated Crawler(id=J1)")));
+        } finally {
+            capture.detach();
+            engine.close();
+        }
+    }
+
+    @Test
+    public void test_evaluate_failureWarnsWithoutAJob() {
+        // Document boosts, crawler field scripts and path mappings run outside the scheduler.
+        final CapturedWarnings capture = CapturedWarnings.attach(GroovyEngine.class);
+        try {
+            assertNull(groovyEngine.evaluate("this is not groovy (", new HashMap<>()));
+            assertTrue("an evaluation outside a scheduled job must say so: " + capture.messages(),
+                    capture.messages().stream().anyMatch(m -> m.contains("job=none")));
+        } finally {
+            capture.detach();
+        }
+    }
+
+    /**
+     * Collects the WARN messages a logger emits. Log4j ships a list appender only in a test-jar
+     * this project does not depend on, so the few lines are kept here.
+     */
+    static final class CapturedWarnings extends AbstractAppender {
+        private final List<String> messages = new CopyOnWriteArrayList<>();
+        private final LoggerConfig loggerConfig;
+        private final Level restoredLevel;
+
+        private CapturedWarnings(final LoggerConfig loggerConfig) {
+            super("CapturedWarnings", null, null, true, Property.EMPTY_ARRAY);
+            this.loggerConfig = loggerConfig;
+            restoredLevel = loggerConfig.getLevel();
+        }
+
+        static CapturedWarnings attach(final Class<?> target) {
+            final LoggerContext context = (LoggerContext) LogManager.getContext(false);
+            final LoggerConfig loggerConfig = context.getConfiguration().getLoggerConfig(target.getName());
+            final CapturedWarnings appender = new CapturedWarnings(loggerConfig);
+            appender.start();
+            loggerConfig.setLevel(Level.WARN);
+            loggerConfig.addAppender(appender, null, null);
+            context.updateLoggers();
+            return appender;
+        }
+
+        void detach() {
+            loggerConfig.removeAppender(getName());
+            loggerConfig.setLevel(restoredLevel);
+            ((LoggerContext) LogManager.getContext(false)).updateLoggers();
+            stop();
+        }
+
+        @Override
+        public void append(final LogEvent event) {
+            if (event.getLevel().isMoreSpecificThan(Level.WARN)) {
+                messages.add(event.getMessage().getFormattedMessage());
+            }
+        }
+
+        List<String> messages() {
+            return messages;
+        }
     }
 
     /**

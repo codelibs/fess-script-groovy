@@ -35,6 +35,7 @@ import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.config.Property;
 import org.codelibs.fess.exception.JobProcessingException;
+import org.codelibs.fess.exception.ScriptEngineException;
 import org.codelibs.fess.opensearch.config.exentity.ScheduledJob;
 import org.codelibs.fess.util.ComponentUtil;
 import org.junit.jupiter.api.Assertions;
@@ -234,32 +235,44 @@ public class GroovyEngineTest extends UnitScriptTestCase {
     }
 
     /**
-     * Test that generic exceptions are caught and null is returned
+     * A script that cannot be evaluated has to leave the method as a failure: returning null made
+     * it indistinguishable from a script that evaluates to null, and a scheduled job running one
+     * was recorded as ok.
      */
     @Test
-    public void test_evaluate_genericExceptionReturnsNull() {
+    public void test_evaluate_genericExceptionIsReported() {
         final Map<String, Object> params = new HashMap<>();
         // Invalid script that will cause an exception
-        assertNull(groovyEngine.evaluate("return nonExistentVariable", params));
+        org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class,
+                () -> groovyEngine.evaluate("return nonExistentVariable", params));
     }
 
     /**
-     * Test that syntax errors return null
+     * The reason the failure could not be reported before: both outcomes were null.
      */
     @Test
-    public void test_evaluate_syntaxErrorReturnsNull() {
+    public void test_evaluate_aScriptThatEvaluatesToNullIsNotAFailure() {
+        assertNull(groovyEngine.evaluate("return null", new HashMap<>()));
+    }
+
+    /**
+     * Test that syntax errors are reported
+     */
+    @Test
+    public void test_evaluate_syntaxErrorIsReported() {
         final Map<String, Object> params = new HashMap<>();
-        assertNull(groovyEngine.evaluate("this is not valid groovy code {{{", params));
+        org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class,
+                () -> groovyEngine.evaluate("this is not valid groovy code {{{", params));
     }
 
     /**
-     * Test that runtime exceptions in scripts return null
+     * Test that runtime exceptions in scripts are reported
      */
     @Test
-    public void test_evaluate_runtimeExceptionReturnsNull() {
+    public void test_evaluate_runtimeExceptionIsReported() {
         final Map<String, Object> params = new HashMap<>();
         // Division by zero
-        assertNull(groovyEngine.evaluate("return 1 / 0", params));
+        org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class, () -> groovyEngine.evaluate("return 1 / 0", params));
     }
 
     // ===== Script Execution Tests =====
@@ -554,11 +567,11 @@ public class GroovyEngineTest extends UnitScriptTestCase {
         final Map<String, Object> params = new HashMap<>();
         final String invalidScript = "this is not valid {{{";
 
-        // First call: syntax error returns null
-        assertNull(engine.evaluate(invalidScript, params));
+        // First call: the syntax error is reported
+        org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class, () -> engine.evaluate(invalidScript, params));
 
-        // Second call: should also return null (not cached, recompiles and fails again)
-        assertNull(engine.evaluate(invalidScript, params));
+        // Second call: reported again (not cached, recompiles and fails again)
+        org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class, () -> engine.evaluate(invalidScript, params));
 
         // Valid script should still work after syntax errors
         assertEquals(42, engine.evaluate("return 42", params));
@@ -575,7 +588,8 @@ public class GroovyEngineTest extends UnitScriptTestCase {
         final Map<String, Object> params = new HashMap<>();
 
         for (int i = 0; i < 10; i++) {
-            assertNull(engine.evaluate("invalid script {{{ " + i, params));
+            final String script = "invalid script {{{ " + i;
+            org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class, () -> engine.evaluate(script, params));
         }
 
         // Engine should still function normally
@@ -818,7 +832,8 @@ public class GroovyEngineTest extends UnitScriptTestCase {
     public void test_evaluate_callsLogScriptExecutionOnException() {
         final TestableGroovyEngine testEngine = new TestableGroovyEngine();
         final Map<String, Object> params = new HashMap<>();
-        testEngine.evaluate("return undefinedVariable", params);
+        org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class,
+                () -> testEngine.evaluate("return undefinedVariable", params));
         assertTrue(testEngine.logScriptExecutionCalled);
         assertTrue(testEngine.lastLoggedResult.startsWith("failure:"));
     }
@@ -863,7 +878,8 @@ public class GroovyEngineTest extends UnitScriptTestCase {
         };
         final CapturedWarnings capture = CapturedWarnings.attach(GroovyEngine.class);
         try {
-            assertNull(engine.evaluate("this is not groovy (", new HashMap<>()));
+            org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class,
+                    () -> engine.evaluate("this is not groovy (", new HashMap<>()));
             assertTrue("the warning must name the job whose script failed: " + capture.messages(),
                     capture.messages().stream().anyMatch(m -> m.contains("job=Migrated Crawler(id=J1)")));
         } finally {
@@ -877,7 +893,8 @@ public class GroovyEngineTest extends UnitScriptTestCase {
         // Document boosts, crawler field scripts and path mappings run outside the scheduler.
         final CapturedWarnings capture = CapturedWarnings.attach(GroovyEngine.class);
         try {
-            assertNull(groovyEngine.evaluate("this is not groovy (", new HashMap<>()));
+            org.junit.jupiter.api.Assertions.assertThrows(ScriptEngineException.class,
+                    () -> groovyEngine.evaluate("this is not groovy (", new HashMap<>()));
             assertTrue("an evaluation outside a scheduled job must say so: " + capture.messages(),
                     capture.messages().stream().anyMatch(m -> m.contains("job=none")));
         } finally {

@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.codelibs.core.lang.StringUtil;
 import org.codelibs.fess.Constants;
 import org.codelibs.fess.exception.JobProcessingException;
+import org.codelibs.fess.exception.ScriptEngineException;
 import org.codelibs.fess.opensearch.config.exentity.ScheduledJob;
 import org.codelibs.fess.script.AbstractScriptEngine;
 import org.codelibs.fess.util.ComponentUtil;
@@ -133,9 +134,11 @@ public class GroovyEngine extends AbstractScriptEngine {
      *
      * @param template the Groovy script to evaluate (null-safe, returns null if empty)
      * @param paramMap the parameters to bind to the script (null-safe, treated as empty map if null)
-     * @return the result of script evaluation, or null if the template is empty or evaluation fails
+     * @return the result of script evaluation, which may be null when the script itself
+     *         evaluates to null, or when the template is empty
      * @throws JobProcessingException if the script explicitly throws this exception
      *         (allows scripts to signal job-specific errors that should propagate)
+     * @throws ScriptEngineException if the script cannot be evaluated
      */
     @Override
     public Object evaluate(final String template, final Map<String, Object> paramMap) {
@@ -175,7 +178,13 @@ public class GroovyEngine extends AbstractScriptEngine {
             logger.warn("Failed to evaluate Groovy script: job={}, script(length={})={}, parameterKeys={}", describeCurrentJob(),
                     template.length(), truncatedScript, safeParamMap.keySet(), e);
             logScriptExecution(template, "failure:" + e.getClass().getSimpleName());
-            return null;
+            // A failure has to leave the method as a failure. Returning null made it
+            // indistinguishable from a script that evaluates to null, so a scheduled job whose
+            // script does not even compile was recorded as ok in the job log. The message names
+            // the script rather than repeating the cause, which is carried by the cause itself
+            // and logged above; ScriptExecutorJob puts this message in the job log's
+            // script_result, where naming the script that failed is what identifies it.
+            throw new ScriptEngineException("Failed to evaluate the script: " + truncatedScript, e);
         }
     }
 
@@ -255,10 +264,9 @@ public class GroovyEngine extends AbstractScriptEngine {
      * Describes the scheduled job the current evaluation belongs to, for the warning in
      * {@link #evaluate(String, Map)}.
      *
-     * <p>A failed evaluation returns null instead of propagating, so a scheduler job whose script
-     * cannot be evaluated is still recorded with a successful status. Naming the job here is what
-     * ties that job log entry back to the warning; the script text on its own does not say which
-     * job produced it.</p>
+     * <p>The warning carries the script text, which on its own does not say which job produced
+     * it, so the job is named here as well: with several jobs sharing a script shape, that is
+     * what ties the warning to the job whose script failed.</p>
      *
      * @return the job name and id, or "none" when the evaluation is not part of a scheduled job
      */

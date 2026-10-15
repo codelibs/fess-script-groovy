@@ -4,12 +4,12 @@
 	<artifactId>fess-script-groovy</artifactId>
 	<packaging>jar</packaging>
 	<name>Groovy Script Plugin</name>
-	<version>15.9.0</version>
+	<version>15.9.1-SNAPSHOT</version>
 	<scm>
 		<connection>scm:git:git@github.com:codelibs/fess-script-groovy.git</connection>
 		<developerConnection>scm:git:git@github.com:codelibs/fess-script-groovy.git</developerConnection>
 		<url>https://github.com/codelibs/fess-script-groovy</url>
-		<tag>fess-script-groovy-15.9.0</tag>
+		<tag>HEAD</tag>
 	</scm>
 	<parent>
 		<groupId>org.codelibs.fess</groupId>
